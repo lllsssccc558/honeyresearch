@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蜂蜜抗氧化實驗數據看板</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .gradient-bg { background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); }
+        .card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border-radius: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen p-4 md:p-8 font-sans text-slate-800">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-amber-900 mb-2">蜂蜜抗氧化活性與溫度關聯性分析</h1>
+            <p class="text-amber-700 font-medium">基於 DPPH 自由基清除率之定量研究（40°C 最佳活性模型）</p >
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- 關鍵數據卡片 -->
+            <div class="card p-6 border-l-4 border-green-500 shadow-sm">
+                <h3 class="text-sm font-semibold text-gray-500 uppercase">營養黃金溫度</h3>
+                <p class="text-3xl font-bold text-green-600">40°C</p >
+                <p class="text-xs text-gray-400 mt-2">抗氧化成分溶出率最高，結構最穩定</p >
+            </div>
+            <div class="card p-6 border-l-4 border-amber-500 shadow-sm">
+                <h3 class="text-sm font-semibold text-gray-500 uppercase">實測清除率峰值</h3>
+                <p class="text-3xl font-bold text-amber-600">22.26%</p >
+                <p class="text-xs text-gray-400 mt-2">相較於 80°C 組（基準 0%）之提升值</p >
+            </div>
+            <div class="card p-6 border-l-4 border-red-500 shadow-sm">
+                <h3 class="text-sm font-semibold text-gray-500 uppercase">熱受損臨界點</h3>
+                <p class="text-3xl font-bold text-red-600">> 60°C</p >
+                <p class="text-xs text-gray-400 mt-2">酚類化合物開始發生熱變性與降解</p >
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- 圖表區域 -->
+            <div class="card p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-800">趨勢分析：吸光度與清除率</h3>
+                    <span class="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded">數據已校正：40°C 為 Peak</span>
+                </div>
+                <canvas id="honeyChart"></canvas>
+            </div>
+
+            <!-- 互動預測區 -->
+            <div class="card p-6 flex flex-col justify-center">
+                <h3 class="text-lg font-bold text-gray-800 mb-4 text-center">蜂蜜營養保留預測模型</h3>
+                <div class="space-y-6">
+                    <div>
+                        <div class="flex justify-between mb-2">
+                            <label class="text-sm font-medium text-gray-700">模擬沖泡溫度</label>
+                            <span class="text-sm font-bold text-amber-600" id="tempDisplay">40°C</span>
+                        </div>
+                        <input type="range" id="tempSlider" min="25" max="80" value="40" class="w-full h-2 bg-amber-200 rounded-lg appearance-none cursor-pointer accent-amber-600">
+                        <div class="flex justify-between text-xs text-gray-400 mt-1">
+                            <span>25°C (低溫溶出率較低)</span>
+                            <span>80°C (活性歸零)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white rounded-xl p-6 text-center border-2 border-amber-100 shadow-inner">
+                        <span class="text-gray-500 block mb-1">相對營養保留率</span>
+                        <span id="predictValue" class="text-6xl font-black text-amber-600">100%</span>
+                        <div id="riskLevel" class="mt-4 inline-block px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest"></div>
+                    </div>
+
+                    <div class="text-xs text-gray-400 space-y-1">
+                        <p>● 25-40°C：分子熱運動隨溫度增加，抗氧化物萃取效率提升。</p >
+                        <p>● 40-80°C：高溫能量超過分子間鍵能，導致抗氧化結構不可逆破壞。</p >
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="mt-8 text-center text-gray-400 text-sm italic">
+            本數據視覺化看板由蜂蜜抗氧化專題研究團隊開發，數據經由分光光度計三次平行檢測校正。
+        </footer>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('honeyChart').getContext('2d');
+        const honeyChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['25°C', '40°C (最佳)', '60°C', '80°C'],
+                datasets: [
+                    {
+                        label: '相對清除率 (%)',
+                        data: [13.14, 22.26, 8.39, 0],
+                        backgroundColor: (context) => {
+                            return context.dataIndex === 1 ? 'rgba(34, 197, 94, 0.6)' : 'rgba(245, 158, 11, 0.4)';
+                        },
+                        borderColor: (context) => {
+                            return context.dataIndex === 1 ? 'rgb(34, 197, 94)' : 'rgb(245, 158, 11)';
+                        },
+                        borderWidth: 2,
+                        yAxisID: 'y1',
+                        order: 2
+                    },
+                    {
+                        label: '平均吸光度 (Abs)',
+                        data: [0.238, 0.213, 0.251, 0.274],
+                        type: 'line',
+                        borderColor: 'rgb(30, 64, 175)',
+                        backgroundColor: 'rgba(30, 64, 175, 0.1)',
+                        tension: 0.3,
+                        pointRadius: 6,
+                        pointBackgroundColor: 'rgb(30, 64, 175)',
+                        yAxisID: 'y',
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: { display: true, text: '吸光度 (A)', font: { weight: 'bold' } },
+                        suggestedMin: 0.2
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        max: 25,
+                        title: { display: true, text: '清除率 (%)', font: { weight: 'bold' } },
+                        grid: { drawOnChartArea: false }
+                    }
+                }
+            }
+        });
+
+        const slider = document.getElementById('tempSlider');
+        const predictDisplay = document.getElementById('predictValue');
+        const tempDisplay = document.getElementById('tempDisplay');
+        const riskDisplay = document.getElementById('riskLevel');
+
+        slider.addEventListener('input', function() {
+            const t = parseInt(this.value);
+            tempDisplay.innerText = t + "°C";
+            let retention = 0;
+
+            // 修正模型邏輯
+            if (t <= 40) {
+                // 從 25°C 的 13.14% 上升到 40°C 的 22.26%
+                // 換算成百分比保留率（以 40°C 為 100%）
+                // 25°C 時保留率約為 (13.14/22.26) = 59%
+                const baseRetention = (13.14 / 22.26) * 100;
+                retention = baseRetention + ((100 - baseRetention) * (t - 25) / (40 - 25));
+            } else {
+                // 40°C 以後開始下降，80°C 時為 0%
+                // 使用線性插值模擬實驗點數據
+                if (t <= 60) {
+                    // 40°C(100%) 到 60°C(37.7% [即 8.39/22.26])
+                    const p60 = (8.39 / 22.26) * 100;
+                    retention = 100 - ((100 - p60) * (t - 40) / (60 - 40));
+                } else {
+                    // 60°C(37.7%) 到 80°C(0%)
+                    const p60 = (8.39 / 22.26) * 100;
+                    retention = p60 - (p60 * (t - 60) / (80 - 60));
+                }
+            }
+
+            if (retention < 0) retention = 0;
+            if (retention > 100) retention = 100;
+            
+            predictDisplay.innerText = Math.round(retention) + "%";
+
+            // 風險與視覺回饋
+            if (t >= 35 && t <= 45) {
+                riskDisplay.innerText = "★ 黃金攝取期 ★";
+                riskDisplay.className = "mt-4 inline-block px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-green-100 text-green-700 border border-green-200";
+                predictDisplay.className = "text-6xl font-black text-green-600";
+            } else if (t < 35) {
+                riskDisplay.innerText = "溶解不完全 (低活性)";
+                riskDisplay.className = "mt-4 inline-block px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-blue-100 text-blue-700 border border-blue-200";
+                predictDisplay.className = "text-6xl font-black text-blue-600";
+            } else if (t > 45 && t <= 60) {
+                riskDisplay.innerText = "營養流失中";
+                riskDisplay.className = "mt-4 inline-block px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-yellow-100 text-yellow-700 border border-yellow-200";
+                predictDisplay.className = "text-6xl font-black text-yellow-600";
+            } else {
+                riskDisplay.innerText = "嚴重毀損 (無營養)";
+                riskDisplay.className = "mt-4 inline-block px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest bg-red-100 text-red-700 border border-red-200";
+                predictDisplay.className = "text-6xl font-black text-red-600";
+            }
+        });
+        
+        // 初始載入
+        slider.dispatchEvent(new Event('input'));
+    </script>
+</body>
+</html>
